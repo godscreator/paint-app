@@ -1,0 +1,33 @@
+.white-board {
+  width: 800px;
+  height: 600px;
+  border: 1px solid;
+  border-radius: 20px;
+  
+}
+#container {
+  display: grid;
+  grid-template-columns: 1fr 6fr;
+  grid-template-rows: auto;
+  grid-template-areas: 
+    "toolbox  whiteboard";
+}
+
+#toolbox { 
+  grid-area: toolbox; 
+}
+
+#boardcanvas {
+  grid-area: whiteboard;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto;
+}
+#canvas{
+  grid-column: 1;
+  grid-row: 1;
+}
+#canvas2{
+  grid-column: 1;
+  grid-row: 1;
+}
