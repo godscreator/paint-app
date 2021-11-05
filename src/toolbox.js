@@ -75,19 +75,22 @@ const ShapesToolbox = (props) => {
         >
             <BsSquare />
             <div className="dropdown-content">
-                <div className="shapes-toolbox" width="100%" >
-                    <div className="hicon" >
-                        <BsSquareFill onClick={() => setType("fill rect")} />
-                    </div>
-                    <div className="hicon" >
-                        <BsCircle onClick={() => setType("circle")} />
-                    </div>
-                    <div className="hicon">
-                        <BsCircleFill onClick={() => setType("fill circle")} />
-                    </div>
+                <div className="hicon-container">
                     
+                        <div className="hicon" >
+                            <BsSquareFill onClick={() => setType("fill rect")} />
+                        </div>
+                        <div className="hicon" >
+                            <BsCircle onClick={() => setType("circle")} />
+                        </div>
+                        <div className="hicon">
+                            <BsCircleFill onClick={() => setType("fill circle")} />
+                        </div>
+
+
                     
                 </div>
+                
                 
                 <br />
                 radius <br />

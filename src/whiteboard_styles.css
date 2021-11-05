@@ -1,5 +1,5 @@
 .white-board {
-  width: 800px;
+  width: 1300px;
   height: 600px;
   border: 1px solid;
   border-radius: 20px;
@@ -7,8 +7,8 @@
 }
 #container {
   display: grid;
-  grid-template-columns: 1fr 6fr;
-  grid-template-rows: auto;
+  grid-template-columns: 2fr 17fr 1fr;
+  grid-template-rows: 1fr;
   grid-template-areas: 
     "toolbox  whiteboard";
 }

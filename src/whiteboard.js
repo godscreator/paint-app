@@ -1,9 +1,16 @@
 import "./whiteboard_styles.css";
 import React, { useState, useEffect, useRef } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-//import { ConstraintLayout } from "react-constraint-layout";
 import Toolbox from "./toolbox.js";
 
+
+const downloadCanvas = (canvas) => {
+  if (canvas.current !== null) {
+    var dataURL = canvas.current.toDataURL('image/png', 1.0);
+    return dataURL;
+  }
+  return "";
+}
 const drawFree = (context, points, radius, color) => {
   context.lineCap = "round";
   context.lineJoin = "round";
@@ -53,9 +60,20 @@ const drawShape = (context, points, radius, color, type) => {
 }
 
 const eraseFree = (context, points, radius) => {
-  if (points.length>1) {
-    const p = points[points.length-1];
-    context.clearRect(p.x-radius/2,p.y-radius/2,radius,radius);
+  if (points.length>2) {
+    const o = points[points.length - 2];
+    const p = points[points.length - 1];
+    var t = o;
+    var diff = Math.max(Math.abs(p.x - t.x), Math.abs(p.y - t.y));
+    while (diff > 0) {
+      context.clearRect(t.x - radius / 2, t.y - radius / 2, radius, radius);
+      if (t.x < p.x) t.x++;
+      if (t.x > p.x) t.x--;
+      if (t.y > p.y) t.y--;
+      if (t.y < p.y) t.y++;
+      diff = Math.max(Math.abs(p.x - t.x), Math.abs(p.y - t.y));
+    }
+    
   }
   context.closePath();
 }
@@ -143,6 +161,9 @@ export default function Whiteboard() {
     const scaleY = canvas.height / rect.height; // relationship bitmap vs. element for Y
     const OL = rect.left;
     const OT = rect.top;
+    const canvas2 = canvasref2.current;
+    const context2 = canvas2.getContext("2d");
+    context2.clearRect(0, 0, canvas2.width, canvas2.height);
     switch (tool.name) {
       case "pencil":
         setPoints([{
@@ -214,11 +235,12 @@ export default function Whiteboard() {
           <canvas
             className="white-board"
             ref={canvasref2}
-            width="1600"
+            width="2600"
             height="1200"
             style={{ cursor: canvasCursor }}
           />
         </div>
+        
         <div id="canvas">
           <canvas
             className="white-board"
@@ -226,11 +248,12 @@ export default function Whiteboard() {
             onMouseDown={onMouseDown}
             onMouseUp={onMouseUp}
             onMouseMove={draw}
-            width="1600"
+            width="2600"
             height="1200"
             style={{ cursor: canvasCursor }}
           />
         </div>
+        <div><a href={downloadCanvas(canvasref)} download="image.png">download image</a></div>
       </div>
     </div>
   );
