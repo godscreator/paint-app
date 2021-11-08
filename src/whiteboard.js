@@ -3,27 +3,29 @@ import React, { useState, useEffect, useRef } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Toolbox from "./toolbox.js";
 
-
-const downloadCanvas = (canvas) => {
-  if (canvas.current !== null) {
-    var dataURL = canvas.current.toDataURL('image/png', 1.0);
-    return dataURL;
+const downloadCanvas = (downloadref, canvasref) => {
+  if (canvasref.current !== null && downloadref.current!== null) {
+    var dataURL = canvasref.current.toDataURL('image/png', 1.0);
+    downloadref.current.href = dataURL;
+    downloadref.current.download = "fine.png";
+    downloadref.current.click();
   }
-  return "";
 }
 const drawFree = (context, points, radius, color) => {
-  context.lineCap = "round";
-  context.lineJoin = "round";
-  context.lineWidth = radius;
-  context.strokeStyle = color;
-  context.beginPath();
-  var i = 0;
-  while (i < points.length) {
-    const p = points[i++];
-    context.lineTo(p.x, p.y);
+  if (points.length >= 2) {
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.lineWidth = radius;
+    context.strokeStyle = color;
+    context.beginPath();
+    var p = points[points.length - 2];
+    context.moveTo(p.x, p.y);
+    var q = points[points.length - 1];
+    context.lineTo(q.x, q.y);
+    context.stroke();
+    context.closePath();
   }
-  context.stroke();
-  context.closePath();
+  
 }
 
 const drawShape = (context, points, radius, color, type) => {
@@ -50,6 +52,11 @@ const drawShape = (context, points, radius, color, type) => {
         context.fillStyle = color;
         context.fill();
         break;
+      case "line":
+        context.beginPath();
+        context.moveTo(startX, startY);
+        context.lineTo(toX, toY);
+        break;
       default:
 
     }
@@ -65,7 +72,7 @@ const eraseFree = (context, points, radius) => {
     const p = points[points.length - 1];
     var t = o;
     var diff = Math.max(Math.abs(p.x - t.x), Math.abs(p.y - t.y));
-    while (diff > 0) {
+    while (diff >= 1) {
       context.clearRect(t.x - radius / 2, t.y - radius / 2, radius, radius);
       if (t.x < p.x) t.x++;
       if (t.x > p.x) t.x--;
@@ -80,150 +87,111 @@ const eraseFree = (context, points, radius) => {
 
 export default function Whiteboard() {
 
-  const [tool, setTool] = useState({ name: "pencil", color: "black" });
+  const [tool, setTool] = useState({ name: "brush", color: "black" });
   const [canvasCursor, setCanvasCursor] = useState("pointer");
   const [isDrawing, setIsDrawing] = useState(false);
   const [points, setPoints] = useState([]);
   const canvasref = useRef(null);
   const canvasref2 = useRef(null);
-  useEffect(() => {
-    switch (tool.name) {
-      case "shapes":
-        setCanvasCursor("crosshair");
-        break;
-      default:
-        setCanvasCursor("crosshair");
-    }
-  }, [tool]);
+  const downloadref = useRef(null);
+  const [img_array, setImgArray] = useState([]);
 
- 
-  const draw = (evt) => {
-    if (isDrawing) {
-      const canvas = canvasref.current;
-      const context = canvas.getContext('2d');
-      const rect = canvas.getBoundingClientRect(); // abs. size of element
-      const scaleX = canvas.width / rect.width; // relationship bitmap vs. element for X
-      const scaleY = canvas.height / rect.height; // relationship bitmap vs. element for Y
-      const OL = rect.left;
-      const OT = rect.top;
-
-
-      switch (tool.name) {
-
-        case "pencil":
-          setPoints(points.concat([{
-            x: (evt.clientX - OL) * scaleX,
-            y: (evt.clientY - OT) * scaleY
-          }]));
-          drawFree(context, points, 1, tool.color);
-          break;
-
-        case "brush":
-          setPoints(points.concat([{
-            x: (evt.clientX - OL) * scaleX,
-            y: (evt.clientY - OT) * scaleY
-          }]));
-          drawFree(context, points, tool.radius, tool.color);
-          break;
-
-        case "eraser":
-          setPoints(points.concat([{
-            x: (evt.clientX - OL) * scaleX,
-            y: (evt.clientY - OT) * scaleY
-          }]));
-          eraseFree(context, points, tool.radius);
-          break;
-
-        case "shapes":
-
-          const canvas2 = canvasref2.current;
-          const context2 = canvas2.getContext("2d");
-          context2.clearRect(0, 0, canvas2.width, canvas2.height);
-          const new_points = points.concat([{
-            x: (evt.clientX - OL) * scaleX,
-            y: (evt.clientY - OT) * scaleY
-          }]);
-          //console.log("before move: " + new_points.length);
-          drawShape(context2, new_points, tool.radius, tool.color, tool.type);
-          break;
-        default:
-      }
-    }
-
-  };
-
-  const onMouseDown = (evt) => {
-    setIsDrawing(true);
+  const point_wrt_canvas = (pos) => {
     const canvas = canvasref.current;
-    //const context = canvas.getContext('2d');
     const rect = canvas.getBoundingClientRect(); // abs. size of element
     const scaleX = canvas.width / rect.width; // relationship bitmap vs. element for X
     const scaleY = canvas.height / rect.height; // relationship bitmap vs. element for Y
     const OL = rect.left;
     const OT = rect.top;
-    const canvas2 = canvasref2.current;
-    const context2 = canvas2.getContext("2d");
-    context2.clearRect(0, 0, canvas2.width, canvas2.height);
-    switch (tool.name) {
-      case "pencil":
-        setPoints([{
-          x: (evt.clientX - OL) * scaleX,
-          y: (evt.clientY - OT) * scaleY
-        }]);
-        break;
-      case "brush":
-        setPoints([{
-          x: (evt.clientX - OL) * scaleX,
-          y: (evt.clientY - OT) * scaleY
-        }]);
-        break;
-      case "eraser":
-        setPoints([{
-          x: (evt.clientX - OL) * scaleX,
-          y: (evt.clientY - OT) * scaleY
-        }]);
-        break;
-      case "shapes":
-        setPoints([{
-          x: (evt.clientX - OL) * scaleX,
-          y: (evt.clientY - OT) * scaleY
-        }]);
-        //console.log("after down: " + points.length);
-        break;
-      default:
+    return {
+      x: Math.floor((pos.x - OL) * scaleX),
+      y: Math.floor((pos.y - OT) * scaleY)
     }
-  };
+  }
 
-  const onMouseUp = (evt) => {
-    setIsDrawing(false);
+  const brush = (action, point) => {
     const canvas = canvasref.current;
     const context = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect(); // abs. size of element
-    const scaleX = canvas.width / rect.width; // relationship bitmap vs. element for X
-    const scaleY = canvas.height / rect.height; // relationship bitmap vs. element for Y
-    const OL = rect.left;
-    const OT = rect.top;
-    switch (tool.name) {
-      case "shapes":
-        const canvas2 = canvasref2.current;
-        const context2 = canvas2.getContext("2d");
-        context2.clearRect(0, 0, canvas2.width, canvas2.height);
-        //console.log("before: " + points.length);
-        setPoints(points.concat([{
-          x: (evt.clientX - OL) * scaleX,
-          y: (evt.clientY - OT) * scaleY
-        }]));
-        //console.log("up: " + points.length);
+    setCanvasCursor("crosshair");
+    switch (action) {
+     
+      case "mouse_down":
+        setPoints([point]);
+        break;
+      
+      case "mouse_move":
+        setPoints(points.concat([point]));
+        drawFree(context, points, tool.radius, tool.color);
+        break;
+      
+      case "mouse_up":
+        setImgArray(img_array.concat([{ ...tool, points: points }]));
+        setPoints([]);
+        break;
+      default:
+    }
+  }
 
-        drawShape(context, points.concat([{
-          x: (evt.clientX - OL) * scaleX,
-          y: (evt.clientY - OT) * scaleY
-        }]), tool.radius, tool.color, tool.type);
-        //console.log("up");
+  const eraser = (action, point) => {
+    const canvas = canvasref.current;
+    const context = canvas.getContext('2d');
+    setCanvasCursor("crosshair");
+    switch (action) {
+
+      case "mouse_down":
+        setPoints([point]);
+        break;
+
+      case "mouse_move":
+        setPoints(points.concat([point]));
+        eraseFree(context, points, tool.radius);
+        break;
+
+      case "mouse_up":
+        setImgArray(img_array.concat([{ ...tool, points: points }]));
+        setPoints([]);
         break;
       default:
     }
   };
+
+  const shapes = (action, point) => {
+    const canvas = canvasref.current;
+    const context = canvas.getContext('2d');
+    const canvas2 = canvasref2.current;
+    const context2 = canvas2.getContext("2d");
+    setCanvasCursor("crosshair");
+    switch (action) {
+
+      case "mouse_down":
+        setPoints([point]);
+        break;
+
+      case "mouse_move":
+        context2.clearRect(0, 0, canvas2.width, canvas2.height);
+        const new_points = points.concat([point]);
+        drawShape(context2, new_points, tool.radius, tool.color, tool.type);
+        break;
+
+      case "mouse_up":
+        setPoints(points.concat([point]));
+        drawShape(context, points.concat([point]), tool.radius, tool.color, tool.type);
+        setImgArray(img_array.concat([{ ...tool, points: points.concat([point]) }]));
+        setPoints([]);
+        break;
+      default:
+    }
+  };
+
+  var fn_dict = {};
+  fn_dict["brush"] = brush;
+  fn_dict["eraser"] = eraser;
+  fn_dict["shapes"] = shapes;
+
+ 
+  
+
+  useEffect(()=>{console.log(img_array)},[img_array]);
 
   return (
     <div id="container">
@@ -231,29 +199,46 @@ export default function Whiteboard() {
         <Toolbox onToolChangeHandler={(t) => setTool(t)} />
       </div>
       <div id="boardcanvas">
-        <div id="canvas2">
-          <canvas
-            className="white-board"
-            ref={canvasref2}
-            width="2600"
-            height="1200"
-            style={{ cursor: canvasCursor }}
-          />
-        </div>
         
         <div id="canvas">
           <canvas
             className="white-board"
             ref={canvasref}
-            onMouseDown={onMouseDown}
-            onMouseUp={onMouseUp}
-            onMouseMove={draw}
-            width="2600"
-            height="1200"
+            width="4096"
+            height="2048"
             style={{ cursor: canvasCursor }}
           />
         </div>
-        <div><a href={downloadCanvas(canvasref)} download="image.png">download image</a></div>
+
+        <div id="canvas2">
+          <canvas
+            className="white-board"
+            ref={canvasref2}
+            onMouseDown={evt => {
+              setIsDrawing(true);
+              const action = "mouse_down";
+              const point = point_wrt_canvas({ x: evt.clientX, y: evt.clientY });
+              fn_dict[tool.name](action, point);
+            }}
+            onMouseUp={evt => {
+              setIsDrawing(false);
+              const action = "mouse_up";
+              const point = point_wrt_canvas({ x: evt.clientX, y: evt.clientY });
+              fn_dict[tool.name](action, point);
+            }}
+            onMouseMove={evt => {
+              if (isDrawing) {
+                const action = "mouse_move";
+                const point = point_wrt_canvas({ x: evt.clientX, y: evt.clientY });
+                fn_dict[tool.name](action, point);
+              }
+            }}
+            width="4096"
+            height="2048"
+            style={{ cursor: canvasCursor }}
+          />
+        </div>
+        <div><a href="#empty" ref={downloadref} onClick={()=>downloadCanvas(downloadref,canvasref)}>Download</a></div>
       </div>
     </div>
   );
